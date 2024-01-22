@@ -4,8 +4,7 @@ import numpy as np
 from ModelClasses import *
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from sparql_dataframe import get
-import csv
-import numpy as np
+
 
 def readJSON(path):
     # First, create empty dataframes one for each of the main json elements (authors, venues_id, references, publishers)
@@ -66,17 +65,8 @@ def readJSON(path):
 
     return authors_DF, venuesID_DF, references_DF, publishers_DF
 
-import pandas as pd
-import csv
-import numpy as np
-
 def readCSV(path):
-    with open(path, 'r', encoding='utf-8') as csvfile:
-        csvreader = csv.reader(csvfile)
-        header = next(csvreader)
-        data = [row for row in csvreader]
-
-    D0 = pd.DataFrame(data, columns=header)
+    D0 = pd.read_csv(path, header=0,encoding='utf-8')
 
     # store JA_df
     filtered_df = D0.query("type == 'journal-article'")
@@ -87,27 +77,33 @@ def readCSV(path):
     filtered_df = D0.query("type == 'book-chapter'")
     BC_df = filtered_df.drop(columns=['issue', 'volume', 'venue_type', 'publisher', 'event'])
     BC_df = BC_df.rename(columns={'id':'id_doi'})
+    # print(BC_df.head(3))
+    
 
     # store PP_df
     filtered_df = D0.query("type == 'proceedings-paper'")
     PP_df = filtered_df.drop(columns=['issue', 'volume', 'chapter', 'venue_type', 'publisher', 'event'])
     PP_df = PP_df.rename(columns={'id':'id_doi'})
+    # print(PP_df.head(3))
+    
 
     # store VeB_DF
     filtered_df = D0.query("venue_type == 'book'")
     VeB_df = filtered_df.drop(columns=['title', 'type', 'publication_year', 'issue', 'volume', 'chapter', 'event'])
     VeB_df = VeB_df.rename(columns={'id':'id_doi','publisher':'id_crossref'})
+    
 
     # store VeJ_DF
     filtered_df = D0.query("venue_type == 'journal'")
     VeJ_df = filtered_df.drop(columns=['title', 'type', 'publication_year', 'issue', 'volume', 'chapter', 'event'])
     VeJ_df = VeJ_df.rename(columns={'id':'id_doi','publisher':'id_crossref'})
+   
 
     # store VePE_DF
     filtered_df = D0.query("venue_type == 'proceedings'")
     VePE_df = filtered_df.drop(columns=['title', 'type', 'publication_year', 'issue', 'volume', 'chapter'])
     VePE_df = VePE_df.rename(columns={'id':'id_doi','publisher':'id_crossref'})
-
+    
     # Replace all NaN values with None
     JA_df = JA_df.replace(np.nan, None)
     BC_df = BC_df.replace(np.nan, None)
@@ -117,7 +113,6 @@ def readCSV(path):
     VePE_df = VePE_df.replace(np.nan, None)
 
     return JA_df, BC_df, PP_df, VeB_df, VeJ_df, VePE_df
-
 
 
 def dbupdater(graphvariable, endpointURI):

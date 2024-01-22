@@ -5,7 +5,6 @@ from sparql_dataframe import get
 
 import pandas as pd
 import json
-import csv 
 
 from ModelClasses import QueryProcessor
 from auxiliary import readCSV, readJSON ,dbupdater
@@ -76,8 +75,6 @@ class TriplestoreProcessor(object):
             return True
         else:
             return False
-        
-# ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 class TriplestoreDataProcessor(TriplestoreProcessor):
     def __init__(self):
@@ -91,9 +88,7 @@ class TriplestoreDataProcessor(TriplestoreProcessor):
         triples = Graph()
         # ---------- CSV 
         if filepath.endswith(".csv"):
-            with open(filepath, 'r', newline='', encoding='utf-8') as csvfile:
-                csvreader = csv.reader(csvfile)
-                header = next(csvreader)  # Skip the header row
+        
             # df1_g -> journal article         // columns = 'id_doi', 'title', 'type','publication_venue', 'publication_year', 'issue', 'volume'
             # df2_g -> book-chapter            // columns = 'id_doi', 'title', 'type','publication_venue', 'publication_year', 'chapter'
             # df3 -> proceedings-paper       // columns = 'id_doi', 'title', 'type','publication_venue', 'publication_year'
@@ -352,7 +347,8 @@ class TriplestoreDataProcessor(TriplestoreProcessor):
         return True
 
 # ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
+        
+# ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
     def __init__(self):
         super().__init__()
@@ -705,25 +701,34 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         QR_15 = get(endpoint,query,True)
         
         return QR_15
-
- #-------------------------------------------------------------------------------------
-#Yhis code was fixed by my colleguaes after taking the exam.
-#------------------------------------------------------------------------------------
-
-#ANITA METHOD
-#This method has been implemented by Anita Liviabella, following the professor guidelinesin order to retake the exam. 
-#The purpose of the method of the is_publication_in_db(self, pub_id) method in the TriplestoreQueryProcessor class is to take in input a string and return a boolean: True if the publication identified by the input id is included in the dababase, False otherwise.
+    
 
 
+    def is_publication_in_db(self, pub_id):
+        endpoint = self.getEndpointUrl()
+        # Check if pub_id is a string
+        if not isinstance(pub_id, str):
+            raise ValueError("pub_id must be a string")
+
+        query = """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX schema: <https://schema.org/>
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+
+        SELECT ?publication
+        WHERE {{
+            ?publication rdf:type fabio:Expression ;
+                     schema:identifier "{pub_id}".
+         }}
+         """
+        result = get(endpoint, query, True)
+
+    
+        return not result.empty
 
 
 
-
-# ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
-# TEST AREA
-
-grp_endpoint = "http://10.201.0.245:9999/blazegraph/"
+grp_endpoint = "http://10.201.9.103:9999/blazegraph/sparql"
 grp_dp = TriplestoreDataProcessor()
 grp_dp.setEndpointUrl(grp_endpoint)
 grp_dp.uploadData("testData/graph_publications.csv")
@@ -788,3 +793,8 @@ print(Q13)
 
 """ Q14 = grp_qp.getPubCitationCount()
 print(Q14) """
+
+Q_Anita = grp_qp.is_publication_in_db("doi:10.1007/s00521-020-05491-5")
+print(Q_Anita)
+
+
