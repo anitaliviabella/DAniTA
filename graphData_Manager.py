@@ -724,7 +724,6 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
          }}
          """
         result = get(endpoint, query.format(pub_id = doi), True)
-        print(result)
         return not result.empty
 
     
@@ -795,8 +794,12 @@ print(Q13)
 """ Q14 = grp_qp.getPubCitationCount()
 print(Q14) """
 
+
 Q_Anita = grp_qp.is_publication_in_db("doi:10.1007/s00521-020-05491-5")
 print(Q_Anita)
+
+
+
 
 
 

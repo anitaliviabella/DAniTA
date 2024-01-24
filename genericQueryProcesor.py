@@ -379,40 +379,9 @@ class GenericQueryProcessor(object):
     
 
 
-    def compute_h_index(self, author_id):
-        print(f"Inside compute_h_index method for author_id: {author_id}")
-        if author_id != str:
-            return None
-        else:
-        # Get the publications for the given author_id
-            publications = self.getPublicationsByAuthorId(author_id)
-
-        # Filter out None publications and get the list of citation counts
-            citation_counts = [len(publication.getCitedPublications()) for publication in publications if publication]
-
-        # Sort the citation counts in descending order
-            citation_counts.sort(reverse=True)
-
-        # Calculate h-index
-            h_index = 0
-            for i, count in enumerate(citation_counts):
-                if i + 1 <= count:
-                    h_index += 1
-                else:
-                    break
-
-        return h_index
-
     
 
 
-'''ANITAS METHODS
-    1. Firs of all I've initialzied an empty list to store the number of citations for each publication.
-    2.  Then I've retrieved publications by author id (query above).
-    3. I've Populated the citations_list with the number of citations for each publication.
-    4. I've sorted the citations_list in descending order
-    5. find the h-index
-    '''
 
 '''
 # ===== TEST FOR ALL THE QUERIES  
