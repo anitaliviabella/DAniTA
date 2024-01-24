@@ -2,14 +2,14 @@ from rdflib import Graph, URIRef, Literal, RDF
 import urllib.parse
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from sparql_dataframe import get
-
+from urllib.parse import quote
 import pandas as pd
 import json
 
 from ModelClasses import QueryProcessor
 from auxiliary import readCSV, readJSON ,dbupdater
 
-# Global variables
+# Global variables used to store data.
 df1_g = pd.DataFrame()
 df2_g = pd.DataFrame()
 df3_g = pd.DataFrame()
@@ -80,7 +80,7 @@ class TriplestoreDataProcessor(TriplestoreProcessor):
     def __init__(self):
         super().__init__()
     
-    def uploadData(self, filepath):
+    def uploadData(self, filepath): 
         global df1_g, df2_g, df3_g, df4_g, df5_g, df6_g, df7_g, df8_g, df9_g, df10_g
         # Step-1 : read the data into pandas
         
@@ -346,6 +346,8 @@ class TriplestoreDataProcessor(TriplestoreProcessor):
 
         return True
 
+#The upload method is responsible for uploading data to the triplestore. 
+#It reads data from CSV e JSOn file, process it, creates RDF triples and then updates the triplestore using the "dbupdater".
 # ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
         
 # ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -703,12 +705,12 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         return QR_15
     
 
-
-    def is_publication_in_db(self, pub_id):
+#WORKS!
+    def is_publication_in_db(self, doi):
         endpoint = self.getEndpointUrl()
         # Check if pub_id is a string
-        if not isinstance(pub_id, str):
-            raise ValueError("pub_id must be a string")
+        if not isinstance(doi, str):
+                raise ValueError("pub_id must be a string")
 
         query = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -721,14 +723,12 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
                      schema:identifier "{pub_id}".
          }}
          """
-        result = get(endpoint, query, True)
-
-    
+        result = get(endpoint, query.format(pub_id = doi), True)
+        print(result)
         return not result.empty
 
-
-
-grp_endpoint = "http://10.201.9.103:9999/blazegraph/sparql"
+    
+grp_endpoint = "http://10.201.2.76:9999/blazegraph/sparql"
 grp_dp = TriplestoreDataProcessor()
 grp_dp.setEndpointUrl(grp_endpoint)
 grp_dp.uploadData("testData/graph_publications.csv")
@@ -739,6 +739,7 @@ grp_dp.uploadData("testData/graph_other_data.json")
 
 grp_qp = TriplestoreQueryProcessor()
 grp_qp.setEndpointUrl(grp_endpoint)
+print(grp_endpoint)
 
 '''
 for i in publisherURIs:
@@ -796,5 +797,6 @@ print(Q14) """
 
 Q_Anita = grp_qp.is_publication_in_db("doi:10.1007/s00521-020-05491-5")
 print(Q_Anita)
+
 
 

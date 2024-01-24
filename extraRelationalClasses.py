@@ -464,23 +464,50 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
         return pd.DataFrame(data=result,columns=["publication_year", "title", "publication_venue", "id", "issue", "volume", "chapter_number", "pub_type", "family", "given", "orcid", "ref_doi", "issn_isbn", "publisher", "name_pub", "venue_type"])
 
 
-'''ANITA's METHODS'''
+
 #This mehtod must return True if the publication identified by the input id is included in the dababase, False otherwise. The test is available in the TEST_extraRelationalClasses.py
 
-def is_publication_in_db(self, pub_id):
-    if type(pub_id) == str:
-        with sql3.connect(self.getDbPath()) as qrdb:
-            cur = qrdb.cursor()
-            query = "SELECT id FROM JournalArticleTable WHERE id = ? UNION SELECT id FROM BookChapterTable WHERE id = ? UNION SELECT id FROM ProceedingsPaperTable WHERE id = ?;"
+    def is_publication_in_db(self, pub_id):
+        if type(pub_id) == str:
+            with sql3.connect(self.getDbPath()) as qrdb:
+                cur = qrdb.cursor()
+                query = "SELECT id FROM JournalArticleTable WHERE id = ? UNION SELECT id FROM BookChapterTable WHERE id = ? UNION SELECT id FROM ProceedingsPaperTable WHERE id = ?;"
         
-            cur.execute(query, (pub_id, pub_id, pub_id))
-            result = cur.fetchall()
+                cur.execute(query, (pub_id, pub_id, pub_id))
+                result = cur.fetchall()
         
-            if result:
-                return True
-            else:
-                return False
-    else:
-        raise ValueError("The input parameter is not a string!")
+                if result:
+                    return True
+                else:
+                    return False
+        else:
+            raise ValueError("The input parameter is not a string!")
+
+
+
+x = RelationalProcessor()
+print("RelationalProcessor object\n", x)
+x.getDbPath()
+print("Here's the getDbPath result")
+print(x)
+x.setDbPath("SETDBPATH.db")
+print(x.getDbPath())
+
+y = RelationalDataProcessor()
+print("RelationalDataProcessor object\n",y)
+y.setDbPath("SETDBPATH2.db")
+print(y.getDbPath())
+y.uploadData("testData/relational_publications.csv")
+y.uploadData("testData/relational_other_data.json")
+# ======== WATCH OUT ========
+# If you run the code again on here, it will upload again the .csv and the .json to the database (and therefore the getMostCited method will duplicate the result!)
+# This is because of the if_exists parameter in every .to_sql("PublishersTable", rdb, if_exists="append", index=False) instruction
+print("RelationalDataProcessor AFTER UPLOAD\n",y)
+
+
+z = RelationalQueryProcessor()
+z.setDbPath("SETDBPATH2.db")
+query_anita = z.is_publication_in_db("doi:10.1162/qss_a_00112")
+print("is_publication_in_db Query\n", query_anita)
 
 
