@@ -727,7 +727,7 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         return not result.empty
 
     
-grp_endpoint = "http://10.201.2.76:9999/blazegraph/sparql"
+grp_endpoint = "http://10.201.10.36:9999/blazegraph/sparql" #!!!
 grp_dp = TriplestoreDataProcessor()
 grp_dp.setEndpointUrl(grp_endpoint)
 grp_dp.uploadData("testData/graph_publications.csv")
