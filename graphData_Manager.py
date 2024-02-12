@@ -727,7 +727,7 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         return not result.empty
 
     
-grp_endpoint = "http://10.201.10.36:9999/blazegraph/sparql" #!!!
+grp_endpoint = "http://10.44.28.12:9999/blazegraph/sparql" #!!!
 grp_dp = TriplestoreDataProcessor()
 grp_dp.setEndpointUrl(grp_endpoint)
 grp_dp.uploadData("testData/graph_publications.csv")
@@ -797,8 +797,6 @@ print(Q14) """
 
 Q_Anita = grp_qp.is_publication_in_db("doi:10.1007/s00521-020-05491-5")
 print(Q_Anita)
-
-
 
 
 

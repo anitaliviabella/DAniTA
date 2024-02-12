@@ -483,7 +483,18 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
         else:
             raise ValueError("The input parameter is not a string!")
 
-
+    def getPublicationCitations(self, publication_id):
+        if isinstance(publication_id, str):
+            with sql3.connect(self.getDbPath()) as qrdb:
+                cur = qrdb.cursor()
+                # Corrected query to count citations for the given og_doi
+                query = "SELECT COUNT(*) FROM ReferencesTable WHERE og_doi = '{0}'".format(publication_id)
+                cur.execute(query)
+                num_citations = cur.fetchone()[0]
+                qrdb.commit()
+                return num_citations
+        else:
+            raise ValueError("Publication ID must be a string.")
 
 x = RelationalProcessor()
 print("RelationalProcessor object\n", x)
@@ -511,3 +522,5 @@ query_anita = z.is_publication_in_db("doi:10.1162/qss_a_00112")
 print("is_publication_in_db Query\n", query_anita)
 
 
+query_h = z.getPublicationCitations("doi:10.1162/qss_a_00023")
+print("getPublicationCitations\n", query_h)

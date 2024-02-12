@@ -4,6 +4,8 @@ import extraRelationalClasses as rel
 # import extraGraphClasses as gra
 import ModelClasses as dm
 from pubMemory_full import *
+from extraRelationalClasses import RelationalQueryProcessor
+from graphData_Manager import QueryProcessor
 
 class GenericQueryProcessor(object):
     def __init__(self):
@@ -377,34 +379,32 @@ class GenericQueryProcessor(object):
         return result
         #list[Organisation]
     
+
 #--------------------------ANITA----------------------
 
-    def compute_h_index(self, orcid):
-        if not isinstance(orcid, str):
-            raise ValueError("Author ID should be a string")
+    def compute_h_index(self, author_id):
+        citations = []
 
-    # Step 1: Get all publications by the author
-        author_publications = self.getPublicationsByAuthorId(orcid)
+        # Iterate through query processors to gather citation information for the given author
+        for processor in self.queryProcessor:
+            citations.extend(processor.getPublicationCitations())
 
-    # Step 2: Create a list of citation counts for each publication
-        citation_counts = [publication.get_citation_count() for publication in author_publications if publication is not None]
+        # Sort the citations in descending order
+        citations.sort(reverse=True)
 
-    # Step 3: Sort the citation counts in descending order
-        sorted_citations = sorted(citation_counts, reverse=True)
-
-    # Step 4: Find the h-index
+        # Iterate through sorted citations to find the maximum 'h' index
         h_index = 0
-        for h, citations in enumerate(sorted_citations, start=1):
-            if h <= citations:
-                h_index = h
+        for i, citation_count in enumerate(citations, start=1):
+            if citation_count >= i:
+                h_index = i
             else:
                 break
 
         return h_index
 
 
-'''
-# ===== TEST FOR ALL THE QUERIES  
+
+'''# ===== TEST FOR ALL THE QUERIES  
 
 ### PERONI TESt
 
@@ -585,31 +585,12 @@ for item in q13:
     print("ITEM")
     print("Method getIds()\n",item.getIds())
     print("Method getName()\n",item.getName())
+
+
+h_index = generic.compute_h_index("0000-0003-2829-6715")
+print("H-index for the author:", h_index)
 '''
 
-
-
-
-#relational  database using the related source data
-rel_path = "relational.db"
-rel_dp = rel.RelationalDataProcessor()
-rel_dp.setDbPath(rel_path)
-rel_dp.uploadData("testData/relational_publications.csv")
-rel_dp.uploadData("testData/relational_other_data.json")
-
-# In the next passage, create the query processors for both
-# the databases, using the related classes
-rel_qp = rel.RelationalQueryProcessor()
-rel_qp.setDbPath(rel_path)
-
-
-# Finally, create a generic query processor for asking
-# about data
-generic = GenericQueryProcessor()
-generic.addQueryProcessor(rel_qp)
-
-result_h_index = generic.compute_h_index("0000-0003-0530-4305")
-print("H-index for the author:", result_h_index)
 
 
 
