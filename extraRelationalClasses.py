@@ -263,20 +263,33 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
             return pd.DataFrame(data=result,columns=["publication_year", "title", "publication_venue", "id", "issue", "volume", "chapter_number", "pub_type", "family", "given", "orcid", "ref_doi", "issn_isbn", "publisher", "name_pub", "venue_type"])
         else:
             raiseExceptions("The input parameter is not an integer!")
-        
+#----------------------------------
+
+#getPublicationsByAuthorId: It returns a data frame with all the publications (i.e. the rows) that have been authored by the person having the identifier specified as input (e.g. "0000-0001-9857-1511").
+    #getPublicationsByAuthorId: It returns a data frame with all the publications (i.e. the rows) that have been authored by the person having the identifier specified as input (e.g. "0000-0001-9857-1511").
     def getPublicationsByAuthorId(self,id):
         if type(id) == str:
+            print("ehi")
             with sql3.connect(self.getDbPath()) as qrdb:
                 cur = qrdb.cursor()
                 # 2 === Also here I am missing the information regarded the cited Publications (as it does not make any sense to include it here), of which I only save the doi... therefore, I guess that in the generic we will have to retrieve all that information from the database (open a new connection?)
-                query = "SELECT publication_year, title, publication_venue, id, issue, volume, NULL AS chapter_number, pub_type, family, given, orcid, ref_doi, issn_isbn, publisher, name_pub, venue_type FROM JournalArticleTable LEFT JOIN AuthorsTable ON JournalArticleTable.id==AuthorsTable.doi_authors LEFT JOIN ReferencesTable ON AuthorsTable.doi_authors==ReferencesTable.og_doi LEFT JOIN JournalTable ON ReferencesTable.og_doi==JournalTable.id_venue LEFT JOIN PublishersTable ON JournalTable.publisher==PublishersTable.crossref LEFT JOIN VenuesIdTable ON JournalArticleTable.id==VenuesIdTable.doi_venues_id WHERE orcid='{orcid}' UNION SELECT publication_year, title, publication_venue, id, NULL AS issue, NULL AS volume, chapter_number, pub_type, family, given, orcid, ref_doi, issn_isbn, publisher, name_pub, venue_type FROM BookChapterTable LEFT JOIN AuthorsTable ON BookChapterTable.id==AuthorsTable.doi_authors LEFT JOIN ReferencesTable ON AuthorsTable.doi_authors==ReferencesTable.og_doi LEFT JOIN BookTable ON ReferencesTable.og_doi==BookTable.id_venue LEFT JOIN PublishersTable ON BookTable.publisher==PublishersTable.crossref LEFT JOIN VenuesIdTable ON BookChapterTable.id==VenuesIdTable.doi_venues_id WHERE orcid='{orcid}' UNION SELECT publication_year, title, publication_venue, id, NULL AS issue, NULL AS volume, NULL AS chapter_number, pub_type, family, given, orcid, ref_doi, issn_isbn, publisher, name_pub, venue_type FROM ProceedingsPaperTable LEFT JOIN AuthorsTable ON ProceedingsPaperTable.id==AuthorsTable.doi_authors LEFT JOIN ReferencesTable ON AuthorsTable.doi_authors==ReferencesTable.og_doi LEFT JOIN ProceedingsTable ON ReferencesTable.og_doi==ProceedingsTable.id_venue LEFT JOIN PublishersTable ON ProceedingsTable.publisher==PublishersTable.crossref LEFT JOIN VenuesIdTable ON ProceedingsPaperTable.id==VenuesIdTable.doi_venues_id WHERE orcid='{orcid}'".format(orcid=id)
+                query = """
+                    SELECT 
+                        doi_authors, family, given, orcid, title, id
+                    FROM 
+                        AuthorsTable
+                        LEFT JOIN JournalArticleTable ON AuthorsTable.doi_authors == JournalArticleTable.id
+                    WHERE
+                        orcid='{orcid}'""".format(orcid=id)
                 cur.execute(query)
                 result = cur.fetchall()
                 qrdb.commit()
+            print(pd.DataFrame(data=result,columns=["family", "given", "orcid", "doi_authors", "title", "id"]))
             return pd.DataFrame(data=result,columns=["publication_year", "title", "publication_venue", "id", "issue", "volume", "chapter_number", "pub_type", "family", "given", "orcid", "ref_doi", "issn_isbn", "publisher", "name_pub", "venue_type"])
         else:
             raiseExceptions("The input parameter is not a string!")
 
+#getMostCitedPublication: It returns a data frame with all the publications (i.e. the rows) that have received the most number of citations by other publications.
     def getMostCitedPublication(self):
         with sql3.connect(self.getDbPath()) as qrdb:
             cur = qrdb.cursor()
@@ -298,7 +311,8 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
             final_result = pd.merge(left=df2, right=df1, left_on="id", right_on="ref_doi")
             qrdb.commit()
         return final_result
-    
+
+ #--------------------------------------------------------   
     def getMostCitedVenue(self):
         with sql3.connect(self.getDbPath()) as qrdb:
             cur = qrdb.cursor()
@@ -482,20 +496,22 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
                     return False
         else:
             raise ValueError("The input parameter is not a string!")
+    
 
-    def getPublicationCitations(self, publication_id):
-        if isinstance(publication_id, str):
+    #additional method to hanlde the h_index in  the generic
+    def count_citations(self, ref_doi):
             with sql3.connect(self.getDbPath()) as qrdb:
                 cur = qrdb.cursor()
-                # Corrected query to count citations for the given og_doi
-                query = "SELECT COUNT(*) FROM ReferencesTable WHERE og_doi = '{0}'".format(publication_id)
-                cur.execute(query)
-                num_citations = cur.fetchone()[0]
-                qrdb.commit()
-                return num_citations
-        else:
-            raise ValueError("Publication ID must be a string.")
+                query = "SELECT COUNT (*) FROM ReferencesTable WHERE ref_doi = ?"
+                cur.execute(query, (ref_doi,))
+                num_cit = cur.fetchone()[0]
+                #[0]
+        
+            return num_cit
 
+'''
+#/////////////////////////////////////////////////////////////////////////////////
+# TEST FOR ANITA'S METHODS
 x = RelationalProcessor()
 print("RelationalProcessor object\n", x)
 x.getDbPath()
@@ -518,9 +534,15 @@ print("RelationalDataProcessor AFTER UPLOAD\n",y)
 
 z = RelationalQueryProcessor()
 z.setDbPath("SETDBPATH2.db")
+
+#IS_PUBLICATION_IN_DB
 query_anita = z.is_publication_in_db("doi:10.1162/qss_a_00112")
-print("is_publication_in_db Query\n", query_anita)
+print("is_publication_in_db Query\n", query_anita) #--> Returns True
+#query_anita = z.is_publication_in_db("doi:10.1016/j.cirpj.2018.06.002")
+#print("is_publication_in_db Query\n", query_anita) --> Returns False
 
+#ADDITIONAL METHOD TO HANDLE THE H_INDEX METHOD IN THE GENERIC
+query_h = z.count_citations("doi:10.1162/qss_a_00023")
+print("count_citations Query\n", query_h)
 
-query_h = z.getPublicationCitations("doi:10.1162/qss_a_00023")
-print("getPublicationCitations\n", query_h)
+#///////////////////////////////////////////////////////////////////////////////'''

@@ -1,25 +1,21 @@
 # ==== NEW GENERIC QUERY PROCESSOR (2/7) ====
 import pandas as pd
 import extraRelationalClasses as rel   
+import graphData_Manager as grp
 # import extraGraphClasses as gra
 import ModelClasses as dm
 from pubMemory_full import *
 from extraRelationalClasses import RelationalQueryProcessor
 from graphData_Manager import QueryProcessor
+from graphData_Manager import TriplestoreQueryProcessor
+
 
 class GenericQueryProcessor(object):
     def __init__(self):
         self.queryProcessor = list()
-        '''the constructure initializes an instance variable as an empty list.
-        this list of QUeryProcessor objects is to involve when one of the get methods below is executed.
-        Everytime a get method is executed, the method will call the related method on all the QueryProcessor objects included in the variable queryProcessor,
-        before combining the results and returning the requested object.'''
-
-        
     def cleanQueryProcessors(self):
         self.queryProcessor = [] #sets the list as empty.
         return True
-
     def addQueryProcessor(self,processor):
         pClass = type(processor)
         if issubclass (pClass,rel.QueryProcessor): #it checks if the type of the processor is a subclass of rel.queryProcessor.
@@ -28,19 +24,6 @@ class GenericQueryProcessor(object):
             return True
         else:
             return False
-            
-    '''After the cleaning of the queryprocessor, the method addQueryProcessor:
-    create a variable which represents the type of the processor in input,
-    then it checks whith the function issubclass IF che pClass (type of the processor) is a SUBCLASS of the query processor defined in the rel (extraRelationalClasses). 
-    So if the processor in input is a subclass of the QueryProcessor, which it is, I'll append it to the empty list.
-    The function df_creator is defined in thepubMemory_full file.
-
-    The df_creator function, based on its definition, appears to create a DataFrame by executing specific queries using the provided query processor (processor).
-    This DataFrame creation is based on the data obtained from the query processor and is likely specific to the nature of the query processor.
-
-    The call to df_creator(processor) ensures that, upon adding a new query processor, there is an immediate attempt to create a DataFrame using that processor. This could be important for initializing or updating a DataFrame that accumulates data from different query processors over time.
-    '''
-
 
     def getPublicationsPublishedInYear(self,year):
         final_DF = pd.DataFrame() #initialization of an empty df
@@ -62,22 +45,17 @@ class GenericQueryProcessor(object):
             result.append(creatPubobj(item))
         return result
         #list[Publication]
-    
-    ''' This piece of code defines a method which initialize an empy df.
-    It then iterates over the queryprocessor list.
-    Calls the getPublicationPublishedInYear method on each query processor. It then obtain a DataFrame with publications published in year.
-    It then concatenates the obtained df to the other already existing. This accumulates the results from each query processor.
-    It create a set of uniques doi and then create Publication objects.
-    '''
 
+#getPublicationsByAuthorId: It returns a list of Publication objects referring to all the publications that have been authored by the person having the identifier specified as input (e.g. "0000-0001-9857-1511").
     def getPublicationsByAuthorId(self,id):
-
+        #print('HEllo author')
         # The id is going to be a orcid
         final_DF = pd.DataFrame()
             
         for item in self.queryProcessor:
             result_DF = item.getPublicationsByAuthorId(id)
             final_DF = pd.concat([final_DF,result_DF])
+        print("final df:", final_DF)
         
         result = list()
 
@@ -93,7 +71,7 @@ class GenericQueryProcessor(object):
         #list[Publication]
 
 
-
+#getMostCitedPublication: It returns the Publication object that has received the most number of citations by other publications.
     def getMostCitedPublication(self):
         final_DF = pd.DataFrame()
             
@@ -381,219 +359,82 @@ class GenericQueryProcessor(object):
     
 
 #--------------------------ANITA----------------------
-
     def compute_h_index(self, author_id):
+        publications = self.getPublicationsByAuthorId(author_id)
         citations = []
+        #print("publications:", publications)
 
-        # Iterate through query processors to gather citation information for the given author
-        for processor in self.queryProcessor:
-            citations.extend(processor.getPublicationCitations())
+        # Collect citations for each publication
+        for publication in publications:
+            citations.append(self.get_citations(publication.id))  # get_citations is a method to get citations of a publication
 
-        # Sort the citations in descending order
         citations.sort(reverse=True)
-
-        # Iterate through sorted citations to find the maximum 'h' index
         h_index = 0
-        for i, citation_count in enumerate(citations, start=1):
-            if citation_count >= i:
-                h_index = i
+        for i, citation in enumerate(citations):
+            if citation >= i + 1:
+                h_index += 1
             else:
                 break
 
         return h_index
 
+    def get_citations(self, publication_id):
+        # Determine the type of publication_id and call the appropriate query method
+        if publication_id.startswith("doi:"):
+            for processor in self.queryProcessor:
+                if isinstance(processor, RelationalQueryProcessor):
+                    return processor.count_citations(publication_id)
+                elif isinstance(processor, TriplestoreQueryProcessor):
+                    return processor.count_citations(publication_id)
+        else:
+            # Handle other types of identifiers if necessary
+            pass
 
 
-'''# ===== TEST FOR ALL THE QUERIES  
+
+    #It takes in input two different list of publications, and returns a new list that contains the union of the publication in both list (removing the duplicates).'''
+    def remove_duplicates(self, l1, l2):
+        #DOMANDA: non capisco se essendo questo metodo all'interno della classe query processor io debba elaborare una query che ritorni due liste di pubblicazioni!)
+        combined_list = l1 + l2  # Combine both lists
+        seen_ids = set()
+        for publication in combined_list:
+            seen_ids.add(publication)
+        
+        list_seen_ids = list(seen_ids)
+        return list_seen_ids
+    
 
 ### PERONI TESt
+# print('hello 1')
+# # Once all the classes are imported, first create the relational
+# # database using the related source data
+# rel_path = "relational.db"
+# rel_dp = rel.RelationalDataProcessor()
+# rel_dp.setDbPath(rel_path)
+# rel_dp.uploadData("testData/relational_publications.csv")
+# rel_dp.uploadData("testData/relational_other_data.json")
 
-# Once all the classes are imported, first create the relational
-# database using the related source data
-rel_path = "relational.db"
-rel_dp = rel.RelationalDataProcessor()
-rel_dp.setDbPath(rel_path)
-rel_dp.uploadData("testData/relational_publications.csv")
-rel_dp.uploadData("testData/relational_other_data.json")
-
-# In the next passage, create the query processors for both
-# the databases, using the related classes
-rel_qp = rel.RelationalQueryProcessor()
-rel_qp.setDbPath(rel_path)
-
-
-# Finally, create a generic query processor for asking
-# about data
-generic = GenericQueryProcessor()
-generic.addQueryProcessor(rel_qp)
-
-# QUERIES AND METHODS
-q1 = generic.getPublicationsPublishedInYear(2020)
-#print("getPublicationsPublishedInYear Query\n",q1)
-
-print("Methods for the objects of class Publication:\n")
-for item in q1:
-    print("ITEM")
-
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
-
-q2 = generic.getPublicationsByAuthorId("0000-0001-9857-1511")
-#print("getPublicationsByAuthorId Query\n",q2)
-
-print("Methods for the objects of class Publication:\n")
-for item in q2:
-    print("ITEM")
-    
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
-
-q3 = generic.getMostCitedPublication()
-#print("getMostCitedPublication Query\n",q3)
-
-print("Methods for the objects of class Publication:\n")
-for item in q3:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
-
-q4 = generic.getMostCitedVenue()
-print("getMostCitedVenue Query\n",q4)
-
-print("Methods for the objects of class Venue:\n")
-for item in q4:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getPublisher()\n",item.getPublisher())
-
-q5 = generic.getVenuesByPublisherId("crossref:78")
-print("getVenuesByPublisherId Query\n",q5)
-
-print("Methods for the objects of class Venue:\n")
-for item in q5:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getPublisher()\n",item.getPublisher())
-
-q6 = generic.getPublicationInVenue("issn:0944-1344")
-print("getPublicationInVenue Query\n",q6)
-
-print("Methods for the objects of class Publication:\n")
-for item in q6:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
+# # In the next passage, create the query processors for both
+# # the databases, using the related classes
+# rel_qp = rel.RelationalQueryProcessor()
+# rel_qp.setDbPath(rel_path)
 
 
-q7 = generic.getJournalArticlesInIssue("9","17","issn:2164-5515")
-print("getJournalArticleInIssue Query\n",q7)
-
-print("Methods for the objects of class Publication:\n")
-for item in q7:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
+# # Finally, create a generic query processor for asking
+# # about data
+# generic = GenericQueryProcessor()
+# generic.addQueryProcessor(rel_qp)
 
 
-q8 = generic.getJournalArticlesInVolume("17","issn:2164-5515")
-print("getJournalArticleInVolume Query\n",q8)
+#METHOD TO TEST!
+# h_index = generic.compute_h_index("0000-0001-5506-523X")
+# print("H-index for the author:", h_index)
+# print('hello 2')
 
-print("Methods for the objects of class Publication:\n")
-for item in q8:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
+# #1. c'è un problema nella query getPublicationsByAuthorId all'interno del metodo per l'h-index.
 
-q9 = generic.getJournalArticlesInJournal("issn:2164-5515")
-print("getJournalArticleInJournal Query\n",q9)
-
-print("Methods for the objects of class Publication:\n")
-for item in q9:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
-
-q10 = generic.getProceedingsByEvent("web")
-print("getProceedingsByEvent Query\n",q10)
-
-print("Methods for the objects of class Proceedings:\n")
-for item in q10:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getPublisher()\n",item.getPublisher())
-    print("Method getEvent()\n",item.getEvent())
-
-q11 = generic.getPublicationAuthors("doi:10.1080/21645515.2021.1910000")
-print("getPublicationAuthors Query\n",q11)
-
-print("Methods for the objects of class Person:\n")
-for item in q11:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getGivenName()\n",item.getGivenName())
-    print("Method getFamilyName()\n",item.getFamilyName())
-
-q12 = generic.getPublicationsByAuthorName("sil")
-print("getPublicationsByAuthorName Query\n",q12)
-
-print("Methods for the objects of class Publication:\n")
-for item in q12:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getPublicationYear()\n",item.getPublicationYear())
-    print("Method getTitle()\n",item.getTitle())
-    print("Method getCitedPublications()\n",item.getCitedPublications())
-    print("Method getPublicationVenue()\n",item.getPublicationVenue())
-    print("Method getAuthors()\n",item.getAuthors())
-
-q13 = generic.getDistinctPublishersOfPublications(["doi:10.1080/21645515.2021.1910000", "doi:10.3390/ijfs9030035"])
-print("getDistinctPublisherOfPublications Query\n",q13)
-
-print("Methods for the objects of class Organisation:\n")
-for item in q13:
-    print("ITEM")
-    print("Method getIds()\n",item.getIds())
-    print("Method getName()\n",item.getName())
-
-
-h_index = generic.compute_h_index("0000-0003-2829-6715")
-print("H-index for the author:", h_index)
-'''
-
-
-
-
-
+# remove_duplicates_method = generic.remove_duplicates(['doi:10.1162/qss_a_00023', 'doi:10.1038/sdata.2016.18'], ['doi:10.1007/s11192-020-03397-6', 'doi:10.1080/19386389.2021.1999156', 'doi:10.1038/sdata.2016.18'])
+# print(remove_duplicates_method)
         
 
+# #se creo le liste di dois da sola, il metodo di per se funziona appunto escludendo i duplicati.

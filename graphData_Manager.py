@@ -725,22 +725,37 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
          """
         result = get(endpoint, query.format(pub_id = doi), True)
         return not result.empty
-
     
-grp_endpoint = "http://10.44.28.12:9999/blazegraph/sparql" #!!!
-grp_dp = TriplestoreDataProcessor()
-grp_dp.setEndpointUrl(grp_endpoint)
-grp_dp.uploadData("testData/graph_publications.csv")
-grp_dp.uploadData("testData/graph_other_data.json")
+    #additional query to handle h_index
+    #parto dalla stirnga
+    #filtro gli url delle pubblicazioni che contengono la stringa doi
+    #dopo aver individuato l'url della pubblicazione
+    #vado a prendere tutte le pubblicazioni che lo citano
+    #count - numero per quella pubblicazione
+    #<https://FF.github.io/res/publication-doi:10.3390/en14206692> devo cercare il formato
 
-# Checking the superclass is correct or not
-# print(grp_dp.__bases__)
 
-grp_qp = TriplestoreQueryProcessor()
-grp_qp.setEndpointUrl(grp_endpoint)
-print(grp_endpoint)
+    def count_citations(self, ref_doi):
+        endpoint = self.getEndpointUrl()
+        query = f"""
+        PREFIX schema: <https://schema.org/>
+
+        SELECT (COUNT(?publication) as ?numCitations)
+        WHERE {{ 
+        ?publication schema:citation ?o.
+        FILTER (regex (str(?o), "{ref_doi}", "i")) 
+        }}
+
+        """
+        result = get(endpoint, query, True)
+        num_citations = 0
+        if not result.empty and 'numCitations' in result.columns:
+            num_citations = int(result['numCitations'].iloc[0])
+
+        return num_citations
 
 '''
+
 for i in publisherURIs:
     print (i, publisherURIs[i])
 '''
@@ -795,9 +810,32 @@ print(Q13)
 print(Q14) """
 
 
+'''
+#//////////TEST FOR ANITA'S METHODS, REMEMBER TO CHANGE THE ENDPOINT///////////////
+
+grp_endpoint = "http://10.201.60.129:9999/blazegraph/sparql" #!!!
+grp_dp = TriplestoreDataProcessor()
+grp_dp.setEndpointUrl(grp_endpoint)
+grp_dp.uploadData("testData/graph_publications.csv")
+grp_dp.uploadData("testData/graph_other_data.json")
+
+# Checking the superclass is correct or not
+# print(grp_dp.__bases__)
+
+grp_qp = TriplestoreQueryProcessor()
+grp_qp.setEndpointUrl(grp_endpoint)
+print(grp_endpoint)
+
+#IS_PUBLICATION_IN_DB
 Q_Anita = grp_qp.is_publication_in_db("doi:10.1007/s00521-020-05491-5")
-print(Q_Anita)
+print(Q_Anita) #returns true
+
+Q_Anita = grp_qp.is_publication_in_db("doi:10.1162/qss_a_00112")
+print(Q_Anita) #returns false
 
 
+#ADDITIONAL METHOD TO HANDLE THE H_INDEX METHOD IN THE GENERIC
+Q_index = grp_qp.count_citations("doi:10.1093/nar/gkz997")
+print(Q_index)
 
-
+#//////////////////////////////////////////////////'''

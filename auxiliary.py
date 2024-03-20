@@ -139,6 +139,8 @@ def createJournalArticleObj(doi,issue,volume):
 
 
 
+
+
 # testing area
 
 #df1,df2,df3,df4,df5,df6 = readCSV("testData/relational_publications.csv")
