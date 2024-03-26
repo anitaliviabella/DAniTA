@@ -55,7 +55,7 @@ class GenericQueryProcessor(object):
         for item in self.queryProcessor:
             result_DF = item.getPublicationsByAuthorId(id)
             final_DF = pd.concat([final_DF,result_DF])
-        print("final df:", final_DF)
+        #print("final df:", final_DF)
         
         result = list()
 
@@ -360,13 +360,12 @@ class GenericQueryProcessor(object):
 
 #--------------------------ANITA----------------------
     def compute_h_index(self, author_id):
-        publications = self.getPublicationsByAuthorId(author_id)
+        publications = self.getPublicationsByAuthorId(author_id) #orcid
         citations = []
         #print("publications:", publications)
 
-        # Collect citations for each publication
         for publication in publications:
-            citations.append(self.get_citations(publication.id))  # get_citations is a method to get citations of a publication
+            citations.append(self.get_citations(publication.id))  #get citations of a publication
 
         citations.sort(reverse=True)
         h_index = 0
@@ -379,7 +378,6 @@ class GenericQueryProcessor(object):
         return h_index
 
     def get_citations(self, publication_id):
-        # Determine the type of publication_id and call the appropriate query method
         if publication_id.startswith("doi:"):
             for processor in self.queryProcessor:
                 if isinstance(processor, RelationalQueryProcessor):
@@ -387,54 +385,37 @@ class GenericQueryProcessor(object):
                 elif isinstance(processor, TriplestoreQueryProcessor):
                     return processor.count_citations(publication_id)
         else:
-            # Handle other types of identifiers if necessary
             pass
 
 
 
     #It takes in input two different list of publications, and returns a new list that contains the union of the publication in both list (removing the duplicates).'''
-    def remove_duplicates(self, l1, l2):
-        #DOMANDA: non capisco se essendo questo metodo all'interno della classe query processor io debba elaborare una query che ritorni due liste di pubblicazioni!)
-        combined_list = l1 + l2  # Combine both lists
-        seen_ids = set()
-        for publication in combined_list:
-            seen_ids.add(publication)
-        
-        list_seen_ids = list(seen_ids)
-        return list_seen_ids
+
     
+    
+    def remove_dup(self, l1, l2): # list[Publication]
+    
+        combined_list = l1 + l2  
+        final_list = []
 
-### PERONI TESt
-# print('hello 1')
-# # Once all the classes are imported, first create the relational
-# # database using the related source data
-# rel_path = "relational.db"
-# rel_dp = rel.RelationalDataProcessor()
-# rel_dp.setDbPath(rel_path)
-# rel_dp.uploadData("testData/relational_publications.csv")
-# rel_dp.uploadData("testData/relational_other_data.json")
+        for publication in combined_list:
+            if publication not in final_list:
+                final_list.append(publication)
 
-# # In the next passage, create the query processors for both
-# # the databases, using the related classes
-# rel_qp = rel.RelationalQueryProcessor()
-# rel_qp.setDbPath(rel_path)
+        return final_list
 
 
-# # Finally, create a generic query processor for asking
-# # about data
-# generic = GenericQueryProcessor()
-# generic.addQueryProcessor(rel_qp)
 
+'''    def remove_duplicates(l1, l2):
+        combined_list = l1 + l2
+        final_list = []
+        seen = set()
+        for publication in combined_list:
+            pub_stringa = str(publication)
+            if pub_stringa not in seen:
+                final_list.append(publication)
+   
+            seen.add(pub_stringa)
 
-#METHOD TO TEST!
-# h_index = generic.compute_h_index("0000-0001-5506-523X")
-# print("H-index for the author:", h_index)
-# print('hello 2')
-
-# #1. c'è un problema nella query getPublicationsByAuthorId all'interno del metodo per l'h-index.
-
-# remove_duplicates_method = generic.remove_duplicates(['doi:10.1162/qss_a_00023', 'doi:10.1038/sdata.2016.18'], ['doi:10.1007/s11192-020-03397-6', 'doi:10.1080/19386389.2021.1999156', 'doi:10.1038/sdata.2016.18'])
-# print(remove_duplicates_method)
-        
-
-# #se creo le liste di dois da sola, il metodo di per se funziona appunto escludendo i duplicati.
+        return final_list
+'''

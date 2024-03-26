@@ -269,7 +269,7 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
     #getPublicationsByAuthorId: It returns a data frame with all the publications (i.e. the rows) that have been authored by the person having the identifier specified as input (e.g. "0000-0001-9857-1511").
     def getPublicationsByAuthorId(self,id):
         if type(id) == str:
-            print("ehi")
+            #print("ehi")
             with sql3.connect(self.getDbPath()) as qrdb:
                 cur = qrdb.cursor()
                 # 2 === Also here I am missing the information regarded the cited Publications (as it does not make any sense to include it here), of which I only save the doi... therefore, I guess that in the generic we will have to retrieve all that information from the database (open a new connection?)
@@ -284,10 +284,11 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
                 cur.execute(query)
                 result = cur.fetchall()
                 qrdb.commit()
-            print(pd.DataFrame(data=result,columns=["family", "given", "orcid", "doi_authors", "title", "id"]))
+            #print(pd.DataFrame(data=result,columns=["family", "given", "orcid", "doi_authors", "title", "id"]))
             return pd.DataFrame(data=result,columns=["publication_year", "title", "publication_venue", "id", "issue", "volume", "chapter_number", "pub_type", "family", "given", "orcid", "ref_doi", "issn_isbn", "publisher", "name_pub", "venue_type"])
         else:
             raiseExceptions("The input parameter is not a string!")
+        #this returns an empty df
 
 #getMostCitedPublication: It returns a data frame with all the publications (i.e. the rows) that have received the most number of citations by other publications.
     def getMostCitedPublication(self):
@@ -505,9 +506,7 @@ class RelationalQueryProcessor(QueryProcessor,RelationalProcessor):
                 query = "SELECT COUNT (*) FROM ReferencesTable WHERE ref_doi = ?"
                 cur.execute(query, (ref_doi,))
                 num_cit = cur.fetchone()[0]
-                #[0]
-        
-            return num_cit
+            return num_cit #the number of citations that the doi has
 
 '''
 #/////////////////////////////////////////////////////////////////////////////////

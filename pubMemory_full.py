@@ -160,3 +160,4 @@ def creatJAobj(DOI):   #creates JA class objects
     
     return ja_obj     
 
+

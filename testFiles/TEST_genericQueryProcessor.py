@@ -34,6 +34,7 @@ generic = GenericQueryProcessor()
 generic.addQueryProcessor(rel_qp)
 
 '''
+
 # QUERIES AND METHODS
 q1 = generic.getPublicationsPublishedInYear(2020)
 #print("getPublicationsPublishedInYear Query\n",q1)

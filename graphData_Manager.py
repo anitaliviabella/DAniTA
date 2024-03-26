@@ -708,7 +708,6 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
 #WORKS!
     def is_publication_in_db(self, doi):
         endpoint = self.getEndpointUrl()
-        # Check if pub_id is a string
         if not isinstance(doi, str):
                 raise ValueError("pub_id must be a string")
 
@@ -717,7 +716,7 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         PREFIX schema: <https://schema.org/>
         PREFIX fabio: <http://purl.org/spar/fabio/>
 
-        SELECT ?publication
+        SELECT ?publication 
         WHERE {{
             ?publication rdf:type fabio:Expression ;
                      schema:identifier "{pub_id}".
@@ -725,6 +724,11 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
          """
         result = get(endpoint, query.format(pub_id = doi), True)
         return not result.empty
+
+        #select publication = seleziono la variabile da recuperare
+        #where: a condizione che la tripla pattern sia di tipo fabio:expression
+        #schema:identifier {pub_id}: filtra ulteriormente le risorse in base all'identificatore fornito.
+
     
     #additional query to handle h_index
     #parto dalla stirnga
@@ -740,9 +744,9 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
         query = f"""
         PREFIX schema: <https://schema.org/>
 
-        SELECT (COUNT(?publication) as ?numCitations)
+        SELECT (COUNT(?publication) as ?numCitations) 
         WHERE {{ 
-        ?publication schema:citation ?o.
+        ?publication schema:citation ?o. 
         FILTER (regex (str(?o), "{ref_doi}", "i")) 
         }}
 
@@ -753,6 +757,15 @@ class TriplestoreQueryProcessor(QueryProcessor,TriplestoreProcessor):
             num_citations = int(result['numCitations'].iloc[0])
 
         return num_citations
+
+        #select le variabili che la query deve restituire
+        #conta quindi le pubblicazioni come numero di citazioni
+        #a condizione che la la pubblicazione citi la variabile 
+        #filtrando tutteche hanno ref_doi come variabile
+        #regex applica l'espressione regolare alla stringa: risultati parziali
+        #i: case insensitive
+
+
 
 '''
 
